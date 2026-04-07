@@ -17,6 +17,13 @@ This app solves the Mac-to-Android hotspot handshake using a hybrid "Sniper & Pa
 * **State-Aware Icon:** The menu bar icon dynamically updates to Apple's official "Personal Hotspot" icon when a successful Wi-Fi connection is verified.
 * **Launch at Login:** Seamless system integration using `ServiceManagement`.
 * **Zero Third-Party Dependencies:** Uses nothing but Apple's native frameworks.
+<img width="283" height="213" alt="Screenshot 2026-04-07 at 4 42 21 PM" src="https://github.com/user-attachments/assets/690a61a1-9d8d-4918-9e26-17f4f69fc0cd" />
+<img width="520" height="385" alt="Screenshot 2026-04-07 at 4 39 34 PM" src="https://github.com/user-attachments/assets/9123103e-c8e2-43b6-bdb9-1417b0306f8d" />
+<img width="520" height="385" alt="Screenshot 2026-04-07 at 4 39 54 PM" src="https://github.com/user-attachments/assets/470f891a-d003-4e04-9188-f3480046ba96" />
+<img width="283" height="258" alt="Screenshot 2026-04-07 at 4 40 40 PM" src="https://github.com/user-attachments/assets/14b2deb0-85bd-48a7-ba80-de0981857f36" />
+<img width="283" height="278" alt="Screenshot 2026-04-07 at 4 41 00 PM" src="https://github.com/user-attachments/assets/9bb40381-f0de-4f03-bbac-5e2498103a8a" />
+
+
 
 ## 🚀 Installation
 
