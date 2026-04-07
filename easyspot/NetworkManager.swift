@@ -84,4 +84,35 @@ class NetworkManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             scanForNetworks()
         }
     }
+    
+    /// Actively forces the Mac to drop its current network and connect to the target hotspot
+    func forceConnect(to ssid: String, password: String) {
+        guard let interface = client.interface() else { return }
+            
+        do {
+            // 1. Scan specifically for the target network
+            let networks = try interface.scanForNetworks(withName: ssid)
+            guard let targetNetwork = networks.first else {
+                print("Hotspot not visible yet...")
+                return
+            }
+                
+            // 2. Make sure we actually have a password saved!
+            guard !password.isEmpty else {
+                print("No password saved! Cannot force connection.")
+                return
+            }
+                
+            // 3. Force the connection using the saved password
+            print("Hotspot found! Forcing Wi-Fi connection...")
+            try interface.associate(to: targetNetwork, password: password)
+                
+            // 4. Connection successful, update the UI immediately
+            DispatchQueue.main.async {
+                self.checkWiFiState()
+            }
+        } catch {
+            print("Failed to force connection: \(error.localizedDescription)")
+        }
+    }
 }
