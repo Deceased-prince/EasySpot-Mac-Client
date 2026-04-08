@@ -103,9 +103,10 @@ class BLEManager: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriph
         } else {
             print("Receipt confirmed! Android device processed the command.")
         }
-        
+            
         // Disconnect immediately to save battery on both devices
         centralManager.cancelPeripheralConnection(peripheral)
         pendingCommand = nil
+        easySpotPeripheral = nil // <-- NEW: Explicitly clear the memory!
     }
 }

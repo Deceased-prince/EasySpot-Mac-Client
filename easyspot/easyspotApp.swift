@@ -14,13 +14,16 @@ struct EasySpotTriggerApp: App {
     @StateObject var bleManager = BLEManager()
     @StateObject var networkManager = NetworkManager()
     
-    // Hidden secure storage
-    @AppStorage("hotspotPassword") private var hotspotPassword = ""
+    // NEW: Load password securely from Keychain on launch
+    @State private var hotspotPassword = KeychainHelper.loadPassword(for: "EasySpotHotspot") ?? ""
     @AppStorage("isManualSSID") private var isManualSSID = false
     
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var isTransitioning = false
 
+    // NEW: Safely store the timer so we can destroy it if the user clicks rapidly
+    @State private var hotspotConnectionTimer: Timer?
+    
     // Dynamic icon reflects the true Wi-Fi connection state
     var menuBarIcon: String {
         if networkManager.isConnectedToHotspot {
@@ -170,6 +173,9 @@ struct EasySpotTriggerApp: App {
         // 5. If they clicked "Save", store the password
         if response == .alertFirstButtonReturn {
             hotspotPassword = passwordField.stringValue
+            
+            // NEW: Save it to the encrypted macOS Keychain immediately!
+            KeychainHelper.savePassword(hotspotPassword, for: "EasySpotHotspot")
         }
     }
     
@@ -193,6 +199,9 @@ struct EasySpotTriggerApp: App {
             // Fire the BLE trigger, then drop the connection to save battery
             bleManager.triggerHotspot(turnOn: true)
             isTransitioning = true
+            
+            // NEW: Destroy any existing timer before starting a new one
+            hotspotConnectionTimer?.invalidate()
             
             // Aggressive 60-second Wi-Fi scan to bypass macOS's lazy auto-join delay
             var attempts = 0
