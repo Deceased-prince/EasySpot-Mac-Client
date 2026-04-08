@@ -23,7 +23,16 @@ This app solves the Mac-to-Android hotspot handshake using a hybrid "Sniper & Pa
 <img width="283" height="258" alt="Screenshot 2026-04-07 at 4 40 40 PM" src="https://github.com/user-attachments/assets/14b2deb0-85bd-48a7-ba80-de0981857f36" />
 <img width="283" height="278" alt="Screenshot 2026-04-07 at 4 41 00 PM" src="https://github.com/user-attachments/assets/9bb40381-f0de-4f03-bbac-5e2498103a8a" />
 
+## 🔒 Security & Privacy
 
+Because macOS handles Wi-Fi connections defensively, third-party apps cannot tell the system to auto-join a network unless the password is explicitly provided to the `CoreWLAN` framework. 
+
+**How EasySpot handles your data:**
+* **Zero Plain-Text Storage:** EasySpot does not save your Wi-Fi password in application files, preference plists, or `@AppStorage`.
+* **Native Keychain Integration:** When you enter your hotspot password, it is immediately encrypted and passed directly to the native macOS System Keychain. 
+* **Zero Telemetry:** The app operates entirely locally. There are no analytics, crash reporters, or external API calls. 
+
+*Note: Because the app directly queries your Keychain to authorize the Wi-Fi connection, macOS may occasionally prompt you to allow "EasySpot" to access the Keychain item. This is standard Apple security behavior preventing unauthorized background reads you can also click always allow.*
 
 ## 🚀 Installation
 
