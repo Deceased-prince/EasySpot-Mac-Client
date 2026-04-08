@@ -14,8 +14,8 @@ struct EasySpotTriggerApp: App {
     @StateObject var bleManager = BLEManager()
     @StateObject var networkManager = NetworkManager()
     
-    // NEW: Load password securely from Keychain on launch
-    @State private var hotspotPassword = KeychainHelper.loadPassword(for: "EasySpotHotspot") ?? ""
+    // NEW: We only use AppStorage for a harmless True/False flag so the UI knows what to display without touching the Keychain on launch.
+    @AppStorage("isPasswordSaved") private var isPasswordSaved = false
     @AppStorage("isManualSSID") private var isManualSSID = false
     
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -98,7 +98,8 @@ struct EasySpotTriggerApp: App {
                     promptForPassword()
                 }) {
                     Image(systemName: "key")
-                    Text(hotspotPassword.isEmpty ? "Set Hotspot Password..." : "Update Saved Password...")
+                    // The UI now reads the harmless boolean flag instead of the Keychain!
+                    Text(isPasswordSaved ? "Update Saved Password..." : "Set Hotspot Password...")
                 }
                                 
                 Button(action: {
@@ -134,7 +135,7 @@ struct EasySpotTriggerApp: App {
         alert.addButton(withTitle: "Cancel")
             
         let inputField = NSTextField(frame: NSRect(x: 0, y: 0, width: 250, height: 24))
-        inputField.placeholderString = "e.g. Pixel_7_Pro"
+        inputField.placeholderString = "e.g. Pixel_10_Pro"
         alert.accessoryView = inputField
             
         let response = alert.runModal()
@@ -172,10 +173,11 @@ struct EasySpotTriggerApp: App {
             
         // 5. If they clicked "Save", store the password
         if response == .alertFirstButtonReturn {
-            hotspotPassword = passwordField.stringValue
-            
-            // NEW: Save it to the encrypted macOS Keychain immediately!
-            KeychainHelper.savePassword(hotspotPassword, for: "EasySpotHotspot")
+            let newPassword = passwordField.stringValue
+            KeychainHelper.savePassword(newPassword, for: "EasySpotHotspot")
+                    
+            // Tell the UI that a password exists so the menu text changes
+            isPasswordSaved = !newPassword.isEmpty
         }
     }
     
@@ -185,12 +187,16 @@ struct EasySpotTriggerApp: App {
             bleManager.triggerHotspot(turnOn: false)
         } else {
             
-            // SMART LOGIC: Check if we have a password before triggering!
-            if hotspotPassword.isEmpty {
+            // NEW: We only actually ask the Keychain for the password the exact moment we need it for the connection!
+            var currentPassword = KeychainHelper.loadPassword(for: "EasySpotHotspot") ?? ""
+            
+            if currentPassword.isEmpty {
                 promptForPassword()
-                            
+                // Re-check after the popup
+                currentPassword = KeychainHelper.loadPassword(for: "EasySpotHotspot") ?? ""
+                
                 // If they hit cancel on the popup, abort the connection attempt
-                if hotspotPassword.isEmpty {
+                if currentPassword.isEmpty {
                     print("Connection aborted: No password provided.")
                     return
                 }
@@ -208,15 +214,17 @@ struct EasySpotTriggerApp: App {
             Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { timer in
                 attempts += 1
                 
-                // Pass the saved password into our brute-force connection command
-                networkManager.forceConnect(to: networkManager.targetSSID, password: hotspotPassword)
+                // Pass the securely loaded password to the network manager
+                networkManager.forceConnect(to: networkManager.targetSSID, password: currentPassword)
                                 
                 if networkManager.isConnectedToHotspot {
                     isTransitioning = false
                     timer.invalidate()
+                    hotspotConnectionTimer = nil
                 } else if attempts >= 12 {
                     isTransitioning = false
                     timer.invalidate()
+                    hotspotConnectionTimer = nil
                 }
             }
         }
