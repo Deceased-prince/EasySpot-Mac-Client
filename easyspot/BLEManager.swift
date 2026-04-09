@@ -109,4 +109,11 @@ class BLEManager: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriph
         pendingCommand = nil
         easySpotPeripheral = nil // <-- NEW: Explicitly clear the memory!
     }
+    
+    // Safely destroy background listeners if the app quits or resets
+    deinit {
+        centralManager.delegate = nil
+        easySpotPeripheral?.delegate = nil
+        easySpotPeripheral = nil
+    }
 }

@@ -12,8 +12,10 @@ import Security
 /// Securely stores and retrieves passwords using macOS's native encrypted Keychain.
 class KeychainHelper {
     
-    static func savePassword(_ password: String, for service: String) {
-        guard let data = password.data(using: .utf8) else { return }
+    static func savePassword(_ password: String, for service: String) -> Result<String, Error> {
+        guard let data = password.data(using: .utf8) else {
+            return .failure(NSError(domain: "KeychainHelper", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid password encoding"]))
+        }
         
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -21,9 +23,19 @@ class KeychainHelper {
             kSecValueData as String: data
         ]
         
-        // Always delete any old password before saving a new one to prevent duplicates
-        SecItemDelete(query as CFDictionary)
-        SecItemAdd(query as CFDictionary, nil)
+        // Delete existing password
+        let deleteError = SecItemDelete(query as CFDictionary)
+        if deleteError != errSecItemNotFound && deleteError != noErr {
+            return .failure(NSError(domain: "KeychainHelper", code: Int(deleteError), userInfo: [NSLocalizedDescriptionKey: "Failed to delete old password"]))
+        }
+        
+        // Save new password
+        let addError = SecItemAdd(query as CFDictionary, nil)
+        if addError != noErr {
+            return .failure(NSError(domain: "KeychainHelper", code: Int(addError), userInfo: [NSLocalizedDescriptionKey: "Failed to save to keychain"]))
+        }
+        
+        return .success(service)
     }
     
     static func loadPassword(for service: String) -> String? {

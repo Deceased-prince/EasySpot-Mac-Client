@@ -115,4 +115,13 @@ class NetworkManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             print("Failed to force connection: \(error.localizedDescription)")
         }
     }
+    
+    // Safely destroy Wi-Fi listeners and timers when the class is deallocated
+    deinit {
+    
+        //  The macOS hardware cleanup
+        client.delegate = nil
+            
+        print("NetworkManager safely deallocated.")
+    }
 }

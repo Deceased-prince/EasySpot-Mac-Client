@@ -174,12 +174,30 @@ struct EasySpotTriggerApp: App {
         // 5. If they clicked "Save", store the password
         if response == .alertFirstButtonReturn {
             let newPassword = passwordField.stringValue
-            KeychainHelper.savePassword(newPassword, for: "EasySpotHotspot")
-                    
-            // Tell the UI that a password exists so the menu text changes
-            isPasswordSaved = !newPassword.isEmpty
+            
+            // Create a unique, sandboxed string for app
+            let keychainService = "\(Bundle.main.bundleIdentifier ?? "com.easyspot").HotspotPassword"
+            
+            // NEW: Actually evaluate the Result type your model created!
+            let result = KeychainHelper.savePassword(newPassword, for: keychainService)
+                        
+            switch result {
+            case .success(_):
+                print("✅ Password successfully saved to Keychain.")
+                isPasswordSaved = !newPassword.isEmpty
+                            
+                case .failure(let error):
+                    print("❌ Keychain Save Failed: \(error.localizedDescription)")
+                            
+                    // Show an error popup to the user!
+                    let errorAlert = NSAlert()
+                    errorAlert.messageText = "Failed to Save Password"
+                    errorAlert.informativeText = "macOS denied access to the Keychain. Please check your Mac's security settings."
+                    errorAlert.alertStyle = .critical
+                    errorAlert.runModal()
+                }
+            }
         }
-    }
     
     /// Handles the hybrid Bluetooth/Wi-Fi handshake
     func toggleHotspotFlow() {
