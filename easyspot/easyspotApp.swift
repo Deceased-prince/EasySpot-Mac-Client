@@ -7,7 +7,9 @@
 
 import SwiftUI
 import ServiceManagement
-import AppKit // <-- We need this for the native macOS popup window
+import AppKit
+import Security
+import Foundation
 
 @main
 struct EasySpotTriggerApp: App {
@@ -119,10 +121,6 @@ struct EasySpotTriggerApp: App {
         }
     }
     
-    
-    
-    
-    
     // MARK: - Native AppKit ssid pop up
         
     func promptForSSID() {
@@ -149,9 +147,8 @@ struct EasySpotTriggerApp: App {
         }
     }
     
-    
-    
     // MARK: - Native AppKit Password Popup
+    
     func promptForPassword() {
         // 1. Force the app to the front so the popup doesn't spawn invisibly behind other windows
         NSApp.activate(ignoringOtherApps: true)
@@ -172,69 +169,69 @@ struct EasySpotTriggerApp: App {
         let response = alert.runModal()
             
         // 5. If they clicked "Save", store the password
-        if response == .alertFirstButtonReturn {
-            let newPassword = passwordField.stringValue
-            
-            // Create a unique, sandboxed string for app
-            let keychainService = "\(Bundle.main.bundleIdentifier ?? "com.easyspot").HotspotPassword"
-            
-            // NEW: Actually evaluate the Result type your model created!
-            let result = KeychainHelper.savePassword(newPassword, for: keychainService)
-                        
-            switch result {
-            case .success(_):
-                print("✅ Password successfully saved to Keychain.")
-                isPasswordSaved = !newPassword.isEmpty
-                            
-                case .failure(let error):
-                    print("❌ Keychain Save Failed: \(error.localizedDescription)")
-                            
-                    // Show an error popup to the user!
-                    let errorAlert = NSAlert()
-                    errorAlert.messageText = "Failed to Save Password"
-                    errorAlert.informativeText = "macOS denied access to the Keychain. Please check your Mac's security settings."
-                    errorAlert.alertStyle = .critical
-                    errorAlert.runModal()
-                }
-            }
+        guard response == .alertFirstButtonReturn else {
+            return
         }
-    
+        
+        let newPassword = passwordField.stringValue
+        let keychainService = "\(Bundle.main.bundleIdentifier ?? "com.Unknown.EasySpot").HotspotPassword"
+            
+        // Save the password and handle Result
+        let result = KeychainHelper.savePassword(newPassword, for: keychainService)
+            
+        switch result {
+        case .success(_):
+            print("✅ Password successfully saved to Keychain.")
+            isPasswordSaved = !newPassword.isEmpty
+        case .failure(let error):
+            print("❌ Keychain Save Failed: \(error.localizedDescription)")
+                    
+            // Show an error popup to the user!
+            let errorAlert = NSAlert()
+            errorAlert.messageText = "Failed to Save Password"
+            errorAlert.informativeText = "macOS denied access to the Keychain. Please check your Mac's security settings."
+            errorAlert.alertStyle = .critical
+            errorAlert.runModal()
+        }
+    }
+
     /// Handles the hybrid Bluetooth/Wi-Fi handshake
     func toggleHotspotFlow() {
         if networkManager.isConnectedToHotspot {
             bleManager.triggerHotspot(turnOn: false)
         } else {
-            
-            // NEW: We only actually ask the Keychain for the password the exact moment we need it for the connection!
-            var currentPassword = KeychainHelper.loadPassword(for: "EasySpotHotspot") ?? ""
-            
+                
+            // Create the dynamic string ONCE at the top
+            let keychainService = "\(Bundle.main.bundleIdentifier ?? "com.Unknown.EasySpot").HotspotPassword"
+                
+            // Load using the correct dynamic string
+            var currentPassword = KeychainHelper.loadPassword(for: keychainService) ?? ""
+                
             if currentPassword.isEmpty {
                 promptForPassword()
+                    
                 // Re-check after the popup
-                currentPassword = KeychainHelper.loadPassword(for: "EasySpotHotspot") ?? ""
-                
-                // If they hit cancel on the popup, abort the connection attempt
+                currentPassword = KeychainHelper.loadPassword(for: keychainService) ?? ""
+                    
                 if currentPassword.isEmpty {
                     print("Connection aborted: No password provided.")
                     return
                 }
             }
-            
-            // Fire the BLE trigger, then drop the connection to save battery
+                
             bleManager.triggerHotspot(turnOn: true)
             isTransitioning = true
-            
-            // NEW: Destroy any existing timer before starting a new one
-            hotspotConnectionTimer?.invalidate()
-            
-            // Aggressive 60-second Wi-Fi scan to bypass macOS's lazy auto-join delay
-            var attempts = 0
-            Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { timer in
-                attempts += 1
                 
-                // Pass the securely loaded password to the network manager
+            hotspotConnectionTimer?.invalidate()
+                
+            var attempts = 0
+                
+            // FIXED: We assign the timer to our variable so it can be tracked!
+            hotspotConnectionTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { timer in
+                attempts += 1
+                    
                 networkManager.forceConnect(to: networkManager.targetSSID, password: currentPassword)
-                                
+                    
                 if networkManager.isConnectedToHotspot {
                     isTransitioning = false
                     timer.invalidate()

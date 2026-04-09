@@ -5,13 +5,13 @@
 //  Created by Joshua Mendoza on 4/8/26.
 //
 
-
 import Foundation
 import Security
 
 /// Securely stores and retrieves passwords using macOS's native encrypted Keychain.
 class KeychainHelper {
     
+    /// Returns a Result to indicate success or failure
     static func savePassword(_ password: String, for service: String) -> Result<String, Error> {
         guard let data = password.data(using: .utf8) else {
             return .failure(NSError(domain: "KeychainHelper", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid password encoding"]))
@@ -30,7 +30,8 @@ class KeychainHelper {
         }
         
         // Save new password
-        let addError = SecItemAdd(query as CFDictionary, nil)
+        var newResult: CFTypeRef?
+        let addError = SecItemAdd(query as CFDictionary, &newResult)
         if addError != noErr {
             return .failure(NSError(domain: "KeychainHelper", code: Int(addError), userInfo: [NSLocalizedDescriptionKey: "Failed to save to keychain"]))
         }
@@ -49,9 +50,9 @@ class KeychainHelper {
         var result: CFTypeRef?
         SecItemCopyMatching(query as CFDictionary, &result)
         
-        if let data = result as? Data {
-            return String(data: data, encoding: .utf8)
+        guard let data = result as? Data else {
+            return nil
         }
-        return nil
+        return String(data: data, encoding: .utf8)
     }
 }
