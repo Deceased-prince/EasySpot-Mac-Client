@@ -36,13 +36,18 @@ Because macOS handles Wi-Fi connections defensively, third-party apps cannot tel
 
 ## 🚀 Installation
 
-*Note: This initial release is self-signed. You will need to bypass Apple's Gatekeeper on the first launch.*
+*Note: This initial release is open-source and self-signed. Because it does not use a paid Apple Developer certificate, you will need to manually bypass Apple's Gatekeeper on the very first launch. This is a one-time process.*
 
-1. Go to the **[Releases](../../releases)** page and download the latest `easyspot.app.zip`.
+1. Go to the **[Releases](../../releases)** page and download the latest `easyspot.zip`.
 2. Extract the `.zip` file and drag `easyspot.app` into your Mac's **Applications** folder.
-3. Because this app is not signed with a paid Apple Developer certificate, double-clicking it will show an "Unidentified Developer" warning. 
-4. **To open it:** Right-click (or Control-click) the app and select **Open**. Click **Open** again in the warning dialog.
-5. Grant the app **Location Permissions** (macOS requires this to read the names of Wi-Fi networks).
+3. Double-click the app. You will see a warning that it cannot be opened because the developer cannot be verified. Click **Done** (or **OK**).
+4. **To allow the app to open:**
+   * Open your Mac's **System Settings** and select **Privacy & Security** in the left sidebar.
+   * Scroll down to the "Security" section.
+   * You will see a message stating that `"easyspot.app" was blocked from use`. 
+   * Click the **Open Anyway** button next to it.
+   * Use TouchID or enter your Mac's password, then click **Open** on the final confirmation pop-up.
+5. On the first launch, macOS will ask you to grant **Location Permissions**. *(macOS strictly requires this to allow third-party apps to read the names of nearby Wi-Fi networks).*
 
 ## 🛠 Usage
 1. Click the antenna icon in your menu bar.
