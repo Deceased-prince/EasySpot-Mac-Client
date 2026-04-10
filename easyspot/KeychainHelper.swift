@@ -19,6 +19,7 @@ class KeychainHelper {
         
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: "HotspotUser",
             kSecAttrService as String: service,
             kSecValueData as String: data
         ]
@@ -42,6 +43,7 @@ class KeychainHelper {
     static func loadPassword(for service: String) -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: "HotspotUser",
             kSecAttrService as String: service,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne

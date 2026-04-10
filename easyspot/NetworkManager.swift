@@ -67,15 +67,18 @@ class NetworkManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     /// Used only when explicitly requested or during the 60-second connection handshake.
     func scanForNetworks() {
         guard let interface = client.interface() else { return }
-        do {
-            let networks = try interface.scanForNetworks(withName: nil)
-            let ssids = networks.compactMap { $0.ssid }.filter { !$0.isEmpty }
-            
-            DispatchQueue.main.async {
-                self.availableNetworks = Array(Set(ssids)).sorted()
+        
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            do {
+                let networks = try interface.scanForNetworks(withName: nil)
+                let ssids = networks.compactMap { $0.ssid }.filter { !$0.isEmpty }
+                
+                DispatchQueue.main.async {
+                    self?.availableNetworks = Array(Set(ssids)).sorted()
+                }
+            } catch {
+                print("Network scan failed: \(error.localizedDescription)")
             }
-        } catch {
-            print("Network scan failed: \(error.localizedDescription)")
         }
     }
     
@@ -85,34 +88,46 @@ class NetworkManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
     }
     
+    private var isConnecting = false
+    
     /// Actively forces the Mac to drop its current network and connect to the target hotspot
     func forceConnect(to ssid: String, password: String) {
         guard let interface = client.interface() else { return }
+        
+        // Prevent overlapping connection attempts from the Timer
+        guard !isConnecting else { return }
+        isConnecting = true
             
-        do {
-            // 1. Scan specifically for the target network
-            let networks = try interface.scanForNetworks(withName: ssid)
-            guard let targetNetwork = networks.first else {
-                print("Hotspot not visible yet...")
-                return
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            defer {
+                DispatchQueue.main.async { self?.isConnecting = false }
             }
-                
-            // 2. Make sure we actually have a password saved!
-            guard !password.isEmpty else {
-                print("No password saved! Cannot force connection.")
-                return
+            
+            do {
+                // 1. Scan specifically for the target network
+                let networks = try interface.scanForNetworks(withName: ssid)
+                guard let targetNetwork = networks.first else {
+                    print("Hotspot not visible yet...")
+                    return
+                }
+                    
+                // 2. Make sure we actually have a password saved!
+                guard !password.isEmpty else {
+                    print("No password saved! Cannot force connection.")
+                    return
+                }
+                    
+                // 3. Force the connection using the saved password
+                print("Hotspot found! Forcing Wi-Fi connection...")
+                try interface.associate(to: targetNetwork, password: password)
+                    
+                // 4. Connection successful, update the UI immediately
+                DispatchQueue.main.async {
+                    self?.checkWiFiState()
+                }
+            } catch {
+                print("Failed to force connection: \(error.localizedDescription)")
             }
-                
-            // 3. Force the connection using the saved password
-            print("Hotspot found! Forcing Wi-Fi connection...")
-            try interface.associate(to: targetNetwork, password: password)
-                
-            // 4. Connection successful, update the UI immediately
-            DispatchQueue.main.async {
-                self.checkWiFiState()
-            }
-        } catch {
-            print("Failed to force connection: \(error.localizedDescription)")
         }
     }
     
