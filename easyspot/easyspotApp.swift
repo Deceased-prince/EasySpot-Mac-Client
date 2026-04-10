@@ -121,7 +121,7 @@ struct EasySpotTriggerApp: App {
         }
     }
     
-    // MARK: - Native AppKit ssid pop up
+    // MARK: - Native AppKit SSID Popup
         
     func promptForSSID() {
         NSApp.activate(ignoringOtherApps: true)
